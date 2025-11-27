@@ -14,6 +14,7 @@ Esto significa que cualquier struct que tenga un método GetAll(ctx context.Cont
 type Repo interface {
 	GetAll(ctx context.Context) ([]domain.Persona, error) //crea la query hace la sentencia sql
 	GetPokemons(ctx context.Context) ([]domain.Pokemon, error)
+	GetType(ctx context.Context) ([]string, error)
 	CreatePokemon(ctx context.Context, poke *domain.Pokemon) (*domain.Pokemon, error)
 	DeletePokemon(ctx context.Context, id int) error
 	PatchPokemon(ctx context.Context, id int, poke *domain.Pokemon) error
@@ -29,6 +30,36 @@ func NewRepository(db *sql.DB) *Repository { //Un constructor para poder inyecta
 		Db: db,
 	}
 }
+
+func (r *Repository) GetType(ctx context.Context) ([]string, error) {
+	const qy = `
+		SELECT name
+		FROM type
+		ORDER BY id;
+	`
+	rows, err := r.Db.QueryContext(ctx, qy)
+	if err != nil { 
+		return nil, fmt.Errorf("repo pokemones: query GetType: %w", err)
+	} 
+	defer rows.Close() //cierra la consulta a la bd y libera los recursos el defer pospone esto
+	var types []string
+	for rows.Next() {
+		var t string 
+		if err := rows.Scan(&t); err != nil {
+			return nil, fmt.Errorf("repo pokemones: scan: %w", err)
+		}
+		types = append(types, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("repo pokemones: rows err: %w", err)
+	}
+	/*if len(types) == 0 {
+		return nil, errors.New("no hay tipos")
+	}*/
+	return types, nil
+}
+
+
 
 func (r *Repository) PatchPokemon(ctx context.Context, id int, poke *domain.Pokemon) error {
 	const updateQ = `

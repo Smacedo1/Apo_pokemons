@@ -13,6 +13,7 @@ type Service interface {
 	Post(ctx context.Context, poke *domain.Pokemon) (*domain.Pokemon, error)
 	Delete(ctx context.Context, id int) error
 	Patch(ctx context.Context, id int, poke *domain.Pokemon) error
+	GetType(ctx context.Context) ([]string, error)
 }
 
 // Servicio es la implementación concreta del servicio
@@ -24,6 +25,10 @@ func NewService(r repository.Repo) *Servicio {
 	return &Servicio{
 		repo: r,
 	}
+}
+
+func (s *Servicio) GetType(ctx context.Context) ([]string, error) {
+	return s.repo.GetType(ctx)
 }
 
 func (s *Servicio) Get(ctx context.Context) ([]domain.Persona, error) {
