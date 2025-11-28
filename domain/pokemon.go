@@ -1,8 +1,8 @@
 package domain
 
 type Pokemon struct {
-	ID 	 int
-	Nombre   string
-	Tipo     string
-	Nivel    int
+	ID       int
+	Name     string
+	Type1_id int
+	Type2_id *int
 }
