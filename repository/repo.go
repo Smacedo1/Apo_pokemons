@@ -124,8 +124,8 @@ func (r *Repository) DeletePokemon(ctx context.Context, id int) error {
 func (r *Repository) CreatePokemon(ctx context.Context, poke *domain.Pokemon) (*domain.Pokemon, error) {
 	// TODO: Implementar la inserción del usuario
 	const insertQ = `
-		INSERT INTO pokemones (tipo, nombre, nivel)
-		VALUES (?, ?, ?);
+		INSERT INTO pokemones (id, name, type1_id, type2_id)
+		VALUES (?, ?, ?, ?);
 	`
 	result, err := r.Db.ExecContext(ctx, insertQ, poke.ID, poke.Name, poke.Type1_id, poke.Type2_id)
 	if err != nil {
