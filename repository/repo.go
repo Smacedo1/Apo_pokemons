@@ -52,7 +52,7 @@ func (r *Repository) GetPokemon(ctx context.Context, id int) (*domain.Pokemon, e
 
 func (r *Repository) GetTypeById(ctx context.Context, id int) (domain.PokemonType, error) {
 	const q = `
-		SELECT *
+		SELECT id, name
 		FROM type
 		WHERE id = ?;
 		
@@ -60,7 +60,7 @@ func (r *Repository) GetTypeById(ctx context.Context, id int) (domain.PokemonTyp
 	row := r.Db.QueryRowContext(ctx, q, id)
 
 	var t domain.PokemonType
-	if err := row.Scan(&t); err != nil {
+	if err := row.Scan(&t.ID, &t.Type); err != nil {
 		return domain.PokemonType{}, fmt.Errorf("repo type: scan: %w", err)
 	}
 	return t, nil
@@ -68,7 +68,7 @@ func (r *Repository) GetTypeById(ctx context.Context, id int) (domain.PokemonTyp
 
 func (r *Repository) GetType(ctx context.Context) ([]domain.PokemonType, error) {
 	const q = `
-		SELECT name
+		SELECT id, name
 		FROM type
 		ORDER BY id;
 	`
@@ -81,8 +81,8 @@ func (r *Repository) GetType(ctx context.Context) ([]domain.PokemonType, error) 
 	var types []domain.PokemonType
 	for rows.Next() {
 		var t domain.PokemonType
-		if err := rows.Scan(&t, "repo type: scan: %w", err); err != nil {
-			return nil, fmt.Errorf("repo type: rows err: %w", err)
+		if err := rows.Scan(&t.ID, &t.Type); err != nil {
+			return nil, fmt.Errorf("repo type: scan: %w", err)
 		}
 		types = append(types, t)
 	}
@@ -99,10 +99,10 @@ func (r *Repository) GetType(ctx context.Context) ([]domain.PokemonType, error) 
 func (r *Repository) PatchPokemon(ctx context.Context, id int, poke *domain.Pokemon) error {
 	const updateQ = `
 	UPDATE pokemon 
-	SET tipo = ?, Name = ?, Type1_id = ? Type2_id = ?
+	SET name = ?, type1_id = ?, type2_id = ?
 	WHERE id = ?;
 	`
-	_, err := r.Db.ExecContext(ctx, updateQ, poke.ID, poke.Name, poke.Type1_id, id)
+	_, err := r.Db.ExecContext(ctx, updateQ, poke.Name, poke.Type1_id, poke.Type2_id, id)
 	if err != nil {
 		return fmt.Errorf("repo pokemones: update: %w", err)
 	}
@@ -124,10 +124,10 @@ func (r *Repository) DeletePokemon(ctx context.Context, id int) error {
 func (r *Repository) CreatePokemon(ctx context.Context, poke *domain.Pokemon) (*domain.Pokemon, error) {
 	// TODO: Implementar la inserción del usuario
 	const insertQ = `
-		INSERT INTO pokemones (tipo, nombre, nivel)
+		INSERT INTO pokemones (nombre, tipo, nivel)
 		VALUES (?, ?, ?);
 	`
-	result, err := r.Db.ExecContext(ctx, insertQ, poke.ID, poke.Name, poke.Type1_id, poke.Type2_id)
+	result, err := r.Db.ExecContext(ctx, insertQ, poke.Name, poke.Type1_id, poke.Type2_id)
 	if err != nil {
 		return nil, fmt.Errorf("repo pokemones: insert: %w", err)
 	}
