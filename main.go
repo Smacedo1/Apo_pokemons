@@ -4,17 +4,24 @@ import (
 	"context"
 	"database/sql"
 	"gos/handler"
+	"gos/middleware"
 	"gos/repository"
 	"gos/service"
 	"log"
 	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Cargar variables de entorno
+	if err := godotenv.Load(); err != nil {
+		log.Println("No se pudo cargar .env, usando variables del sistema")
+	}
+
 	// Configurar conexión a la base de datos
-	// usuario:contraseña@tcp(host:puerto)/nombre_base
 	dsn := "root:1304@tcp(127.0.0.1:3306)/mi_primera_base"
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -31,60 +38,24 @@ func main() {
 	srv := service.NewService(repo)
 	h := handler.NewHandler(srv)
 
-	log.Printf("Servidor escuchando en :8080")
-	if err := http.ListenAndServe(":8080", h); err != nil {
+	// Crear router con Gorilla Mux
+	r := mux.NewRouter()
+
+	// Aplicar middleware de autenticación a todas las rutas excepto /login
+	protected := r.PathPrefix("/pokedex").Subrouter()
+	protected.Use(middleware.AuthMiddleware)
+	protected.HandleFunc("/pokemons", h.GetPokemons).Methods("GET")
+	protected.HandleFunc("/pokemons", h.CreatePokemon).Methods("POST")
+	protected.HandleFunc("/pokemons/{id}", h.GetPokemon).Methods("GET")
+	protected.HandleFunc("/pokemons/{id}", h.UpdatePokemon).Methods("PATCH")
+	protected.HandleFunc("/pokemons/{id}", h.DeletePokemon).Methods("DELETE")
+	protected.HandleFunc("/types", h.GetTypes).Methods("GET")
+
+	// /login sin auth
+	r.HandleFunc("/login", h.Login).Methods("POST")
+
+	log.Printf("Servidor escuchando en :8081")
+	if err := http.ListenAndServe(":8081", r); err != nil {
 		log.Fatalf("listen and serve: %v", err)
 	}
-}
-
-type Persona struct {
-	Nombre string
-	Edad   int
-}
-
-func buscarP(personas []Persona, nombre string) Persona {
-	var retorno Persona
-
-	for _, v := range personas {
-		if v.Nombre == nombre {
-			retorno = v
-		}
-	}
-	return retorno
-}
-
-func mayorP(personas []Persona) string {
-	var mayor Persona = personas[0]
-	for _, v := range personas {
-		if v.Edad > mayor.Edad {
-			mayor = v
-		}
-	}
-	return mayor.Nombre
-}
-
-func filtrarPorEdad(personas []Persona, edadMin int) []Persona {
-
-	//var mayorE Persona = personas[0] como si quisiera comparar contra la mayor, no me pide esto
-	resultado := []Persona{} //necesito asignar un valor inicial, aunque sea vacio por eso las{}
-
-	for _, p := range personas {
-		if p.Edad >= edadMin {
-			resultado = append(resultado, p)
-
-		}
-
-	}
-	return resultado
-}
-
-func filtrarPorNombre(personas []Persona, nombre string) (Persona, bool) {
-
-	for _, p := range personas {
-
-		if p.Nombre == nombre {
-			return p, true
-		}
-	}
-	return Persona{}, false
 }
